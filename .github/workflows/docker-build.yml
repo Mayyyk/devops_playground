@@ -24,6 +24,6 @@ jobs:
        with:
         context: .
         push: true
-        tags: ghcr.io/Mayyyk/devops_playground:latest
+        tags: ghcr.io/${{github.repository_lowercase}}:latest
 
      
