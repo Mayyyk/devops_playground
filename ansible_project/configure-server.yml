@@ -1,0 +1,66 @@
+---
+- name: Configure Web Server
+  hosts: web
+  become: yes # Większość zadań wymaga uprawnień 'sudo' (stajemy się 'rootem')
+  
+  # Wczytujemy nasze zmienne
+  vars_files:
+    - vars/main.yml
+    - vars/secrets.yml
+
+  pre_tasks:
+    - name: Update APT package cache
+      ansible.builtin.apt:
+        update_cache: yes
+      changed_when: false # Nie oznaczaj tego kroku jako 'zmieniony'
+
+    - name: Install prerequisite packages for Ansible Docker modules
+      ansible.builtin.apt:
+        name:
+          - python3-pip
+          - python3-setuptools
+        state: present
+
+    - name: Install Docker Python library
+      ansible.builtin.pip:
+        name: docker
+        state: present
+
+  roles:
+    # Używamy gotowej, społecznościowej roli do instalacji Dockera
+    # To jest najlepsza praktyka - nie wymyślamy koła na nowo.
+    - name: geerlingguy.docker
+      vars:
+        docker_users: [ "root" ] # Dodajemy 'root' do grupy docker
+
+  tasks:
+    - name: Configure UFW firewall
+      community.general.ufw:
+        rule: allow
+        port: "{{ item }}"
+        proto: tcp
+      loop:
+        - "22"   # SSH (Krytyczne!)
+        - "80"   # HTTP (Na przyszłość, gdy dodasz np. Nginx)
+        - "5000" # Twoja aplikacja Flask
+
+    - name: Enable UFW firewall
+      community.general.ufw:
+        state: enabled
+
+    - name: Log in to GitHub Container Registry
+      community.docker.docker_login:
+        registry_url: ghcr.io
+        username: "{{ github_username }}"
+        password: "{{ github_token }}"
+      become_user: root # Wykonaj logowanie jako 'root'
+
+    - name: Pull and run the Flask container
+      community.docker.docker_container:
+        name: flask-app
+        image: "{{ docker_image_name }}"
+        pull: yes
+        state: started
+        restart_policy: always # Ważne: kontener wstanie sam po restarcie serwera
+        ports:
+          - "5000:5000" # Mapowanie portu (HOST:KONTENER)
