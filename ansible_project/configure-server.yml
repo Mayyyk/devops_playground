@@ -60,6 +60,7 @@
         name: flask-app
         image: "{{ docker_image_name }}"
         pull: yes
+        recreate: yes
         state: started
         restart_policy: always # Ważne: kontener wstanie sam po restarcie serwera
         ports:
