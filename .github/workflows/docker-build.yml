@@ -45,8 +45,8 @@ jobs:
       - name: Install Ansible dependencies
         run: |
           ansible-galaxy collection install community.general community.docker
-          # Instalujemy rolę DOCKERA w podfolderze 'roles' wewnątrz 'ansible_project'
           ansible-galaxy install geerlingguy.docker -p ./ansible_project/roles
+          ansible-galaxy install geerlingguy.node_exporter -p ./ansible_project/roles
 
       - name: Run Ansible Playbook
         uses: dawidd6/action-ansible-playbook@v2
