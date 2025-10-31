@@ -1,2 +1,8 @@
+# Python
 venv/
-terraform_project/
+__pycache__/
+*.pyc
+
+# OS-specific files
+.DS_Store
+Thumbs.db

@@ -15,3 +15,6 @@ ENV PYTHONBUFFERED=1
 EXPOSE 5000
 
 CMD python app.py
+
+
+# Command to run from root: docker build -t my-app -f src/Dockerfile src/

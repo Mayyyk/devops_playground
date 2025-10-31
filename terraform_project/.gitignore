@@ -1,0 +1,12 @@
+# CRITICAL: Local Terraform state files contain secrets
+*.tfstate
+*.tfstate.backup
+
+# Local configuration files that may contain secrets
+*.tfvars
+
+# Terraform provider plugins
+.terraform/
+
+# Crash log
+crash.log
