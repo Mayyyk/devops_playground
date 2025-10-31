@@ -1,70 +1,50 @@
 ---
-- name: Configure Web Server
-  hosts: web
-  become: yes # Większość zadań wymaga uprawnień 'sudo' (stajemy się 'rootem')
-  
-  # Wczytujemy nasze zmienne
-  vars_files:
-    - vars/main.yml
-    - vars/secrets.yml
+- name: Configure Web Server and Install Docker
+  hosts: webserver # run on all hosts listen under [webserver] group in inventory.ini
+
+  become: yes # Execute all tasks as the root user
+
+  gather_facts: no
 
   pre_tasks:
-    - name: Update APT package cache
-      ansible.builtin.apt:
-        update_cache: yes
-      changed_when: false # Nie oznaczaj tego kroku jako 'zmieniony'
+    - name: Ensure .ssh directory exists
+      delegate_to: localhost
+      become: no
+      ansible.builtin.file:
+        path: ~/.ssh
+        state: directory
+        mode: '0700'
+      changed_when: false
+    
+    - name: Add SSH host key to known_hosts
+      delegate_to: localhost
+      become: no
+      ansible.builtin.shell: "ssh-keyscan -H {{ inventory_hostname }} >> ~/.ssh/known_hosts" # append host key to known_hosts so that ansible doesn't stop with a prompt
+      changed_when: "shell_result.rc != 0"
+      register: shell_result
+      ignore_errors: yes
 
-    - name: Install prerequisite packages for Ansible Docker modules
-      ansible.builtin.apt:
-        name:
-          - python3-pip
-          - python3-setuptools
-        state: present
-
-    - name: Install Docker Python library
-      ansible.builtin.pip:
-        name: docker
-        state: present
-
-  roles:
-    # Używamy gotowej, społecznościowej roli do instalacji Dockera
-    # To jest najlepsza praktyka - nie wymyślamy koła na nowo.
-    - name: geerlingguy.docker
-      vars:
-        docker_users: [ "root" ] # Dodajemy 'root' do grupy docker
-
-    - name: geerlingguy.node_exporter
-
+  
   tasks:
-    - name: Configure UFW firewall
-      community.general.ufw:
-        rule: allow
-        port: "{{ item }}"
-        proto: tcp
-      loop:
-        - "22"   # SSH (Krytyczne!)
-        - "80"   # HTTP (Na przyszłość, gdy dodasz np. Nginx)
-        - "5000" # Twoja aplikacja Flask
-        - "9100" # Node exporter
+    - name: Manually gather sever facts
+      ansible.builtin.setup: {}
+      
+    - name: Wait 60 seconds for SSH to become available after server boot
+      ansible.builtin.wait_for_connection:
+        timeout: 60
 
-    - name: Enable UFW firewall
-      community.general.ufw:
-        state: enabled
+    - name: Update apt package cache
+      ansible.builtin.apt: # it's like apt-get update
+        update_cache: yes
+        cache_valid_time: 3600
 
-    - name: Log in to GitHub Container Registry
-      community.docker.docker_login:
-        registry_url: ghcr.io
-        username: "{{ github_username }}"
-        password: "{{ github_token }}"
-      become_user: root # Wykonaj logowanie jako 'root'
+    - name: Install Docker
+      ansible.builtin.apt:
+        name: docker.io
+        state: present # check if present, if not install it
+      register: apt_install_docker
+      until: apt_install_docker is not failed
+      retries: 5
+      delay: 10
 
-    - name: Pull and run the Flask container
-      community.docker.docker_container:
-        name: flask-app
-        image: "{{ docker_image_name }}"
-        pull: yes
-        recreate: yes
-        state: started
-        restart_policy: always # Ważne: kontener wstanie sam po restarcie serwera
-        ports:
-          - "5000:5000" # Mapowanie portu (HOST:KONTENER)
+  

@@ -1,0 +1,8 @@
+# file format for ansible inventory - for terraform use
+
+[webserver]
+
+%{ for droplet in droplets ~}
+${droplet.ipv4_address} ansible_user=root
+%{ endfor ~}
+

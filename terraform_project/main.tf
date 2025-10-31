@@ -17,6 +17,11 @@ terraform {
         source = "digitalocean/digitalocean"
         version = "~> 2.68.0"
       }
+
+      local = { # provider for interacting with local files
+        source = "hashicorp/local"
+        version = "~> 2.1"
+      }
     }
 }
 
@@ -40,18 +45,33 @@ data "digitalocean_ssh_key" "laptop_key" { # first is resource type, second is l
 # }
 
 resource "digitalocean_droplet" "web_server" {
+  count = 4 # create n droplets
   image = "ubuntu-22-04-x64"
-  name = "devops-app-server"
+  name = "devops-app-server-${count.index + 1}"
   region = "fra1"
   size = "s-1vcpu-1gb"
 
   ssh_keys = [data.digitalocean_ssh_key.laptop_key.id]
 }
 
+resource "local_file" "ansible_inventory" {
+  content = templatefile("${path.module}/inventory.tftpl", {
+    droplets = digitalocean_droplet.web_server
+  })
+
+  
+  filename = "${path.module}/../ansible_project/inventory.ini"
+
+  depends_on = [
+    digitalocean_droplet.web_server
+  ] # wait till the server has been created and valid ip can be found
+}
+
+
 # After terraform apply show ip address of the server
 output "droplet_ip_address" {
-  description = "Server public IP adress."
-  value = digitalocean_droplet.web_server.ipv4_address
+  description = "Servers public IP adresses."
+  value = digitalocean_droplet.web_server.*.ipv4_address
 }
 
 output "ssh_keys_on_server" {
