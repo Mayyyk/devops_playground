@@ -72,5 +72,5 @@ jobs:
           # To zastępuje użycie pliku 'inventory.ini'
           inventory: ../inventory.ini # inventory file in the runner
 
-          options: ---extra-vars "ansible_ssh_common_args='-o UserKnownHostsFile=../my_known_hosts'"
+          options: --extra-vars "ansible_ssh_common_args='-o UserKnownHostsFile=../my_known_hosts'"
      
