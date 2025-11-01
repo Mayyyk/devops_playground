@@ -42,10 +42,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Create Inventory File # inventory.ini in ansible_project exists only locally, so we need to create it in the actions runner
-        run: echo "${{ secrets.INVENTORY}}" > ansible_project/.ansible_inventory # create in root directory of the actions runner
-        # Automatic generation of inventory possible when tf state file is remotely hosted
-        shell: bash
 
       - name: Create Known Hosts File
         run: echo "${{ secrets.KNOWN_HOSTS}}" > my_known_hosts # create known_hosts file in root directory of the actions runner
@@ -89,7 +85,7 @@ jobs:
           
           directory: ansible_project # go to this directory
 
-          inventory: .ansible_inventory # use the inventory file created in previous step
+          inventory: ${{ secrets.INVENTORY }} # use inventory from secrets
           
           
 
