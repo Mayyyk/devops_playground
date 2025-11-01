@@ -55,15 +55,29 @@ jobs:
         uses: webfactory/ssh-agent@v0.9.0
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
-          
-      - name: Debug Secrets (Check Length)
-        # This step will print the length of the secrets.
-        # If length is 0, the secret is empty.
-        run: |
-          echo "Inventory length: ${{ length(secrets.INVENTORY) }}"
-          echo "Known Hosts length: ${{ length(secrets.KNOWN_HOSTS) }}"
-          echo "SSH Key length: ${{ length(secrets.SSH_PRIVATE_KEY) }}"
+
+      - name: Debug Secrets (Check if Empty)
+        # This step uses bash to check if the secrets are empty
+        # This avoids the 'length()' function which fails parsing.
         shell: bash
+        run: |
+          if [ -z "${{ secrets.INVENTORY }}" ]; then
+            echo "::error:: Sekret INVENTORY jest PUSTY."
+          else
+            echo "Sekret INVENTORY jest OK (ma zawartość)."
+          fi
+          
+          if [ -z "${{ secrets.KNOWN_HOSTS }}" ]; then
+            echo "::error:: Sekret KNOWN_HOSTS jest PUSTY."
+          else
+            echo "Sekret KNOWN_HOSTS jest OK (ma zawartość)."
+          fi
+          
+          if [ -z "${{ secrets.SSH_PRIVATE_KEY }}" ]; then
+            echo "::error:: Sekret SSH_PRIVATE_KEY jest PUSTY."
+          else
+            echo "Sekret SSH_PRIVATE_KEY jest OK (ma zawartość)."
+          fi
         
         # No need to install Ansible dependencies, I stick to basic modules only available in default ansible installation
 
