@@ -85,7 +85,7 @@ jobs:
           
           directory: ansible_project # go to this directory
 
-          inventory: ${{ secrets.INVENTORY }} # use inventory from secrets
+          inventory: ${{ secrets.INVENTORY }} # use inventory from secrets, option with file creation didn't work
           
           
 
