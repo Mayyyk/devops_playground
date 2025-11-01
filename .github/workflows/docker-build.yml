@@ -88,6 +88,8 @@ jobs:
           playbook: playbook.yml
           
           directory: ansible_project # go to this directory
+
+          inventory: .ansible_inventory # use the inventory file created in previous step
           
           
 
