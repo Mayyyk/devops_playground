@@ -1,0 +1,4 @@
+terraform apply
+terraform ip to INVENTORY in github actions
+git push
+

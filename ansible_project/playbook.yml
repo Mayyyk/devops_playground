@@ -47,4 +47,18 @@
       retries: 5
       delay: 10
 
+    - name: Ensure Docker service is running and enabled on boot
+      ansible.builtin.service:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Run Hello-Worldapp container
+      ansible.builtin.docker_container:
+        name: hello-world-app
+        image: "ghcr.io/mayyyk/devops_playground:latest"
+        state: started
+        restart_policy: always
+        ports:
+          - "5000:5000"
   

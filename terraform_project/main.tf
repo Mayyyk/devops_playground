@@ -25,6 +25,10 @@ terraform {
     }
 }
 
+locals {
+  app_tag = "devops-app"
+}
+
 variable "do_token" {
   description = "DigitalOcean API Token."
   type = string
@@ -44,6 +48,45 @@ data "digitalocean_ssh_key" "laptop_key" { # first is resource type, second is l
 #   name = "pc_linux"
 # }
 
+
+resource "digitalocean_firewall" "web_firewall" {
+  name = "devops-app-firewall"
+
+  tags = [local.app_tag] # One firewall for all droplets with this tag
+
+  depends_on = [ digitalocean_droplet.web_server ]
+
+
+    # Rules for INCOMING traffic
+  inbound_rule {
+    protocol         = "tcp"
+    port_range       = "22" # Allow SSH from anywhere
+    source_addresses = ["0.0.0.0/0", "::/0"]
+  }
+  inbound_rule {
+    protocol         = "tcp"
+    port_range       = "5000" # Allow our Flask App from anywhere
+    source_addresses = ["0.0.0.0/0", "::/0"]
+  }
+
+  # Rules for OUTGOING traffic
+  outbound_rule {
+    protocol         = "tcp"
+    port_range       = "all" # Allow all outbound TCP
+    destination_addresses = ["0.0.0.0/0", "::/0"]
+  }
+  outbound_rule {
+    protocol         = "udp"
+    port_range       = "all" # Allow all outbound UDP
+    destination_addresses = ["0.0.0.0/0", "::/0"]
+  }
+  outbound_rule {
+    protocol         = "icmp" # Allow ping
+    destination_addresses = ["0.0.0.0/0", "::/0"]
+  }
+
+}
+
 resource "digitalocean_droplet" "web_server" {
   count = 4 # create n droplets
   image = "ubuntu-22-04-x64"
@@ -52,7 +95,10 @@ resource "digitalocean_droplet" "web_server" {
   size = "s-1vcpu-1gb"
 
   ssh_keys = [data.digitalocean_ssh_key.laptop_key.id]
+
+  tags = [local.app_tag] # assign the same tag as firewall to auto apply it
 }
+
 
 resource "local_file" "ansible_inventory" {
   content = templatefile("${path.module}/inventory.tftpl", {
@@ -66,6 +112,7 @@ resource "local_file" "ansible_inventory" {
     digitalocean_droplet.web_server
   ] # wait till the server has been created and valid ip can be found
 }
+
 
 
 # After terraform apply show ip address of the server
