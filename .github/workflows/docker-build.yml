@@ -2,7 +2,7 @@ name: CI/CD Pipeline - Build and Deploy
 
 on:
   push:
-    branches: [master, main]
+    branches: [master, main, dev]
   workflow_dispatch: # Option to run manually from GitHub UI Actions tab
 
 jobs:
