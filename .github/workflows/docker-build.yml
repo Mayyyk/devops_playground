@@ -55,7 +55,14 @@ jobs:
         uses: webfactory/ssh-agent@v0.9.0
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
-
+      - name: Debug Inventory File
+        # This step will print the content of the inventory file to the log
+        # so we can see if the secret is being loaded correctly.
+        run: |
+          echo "--- Start: Content of ansible_project/.ansible_inventory ---"
+          cat ansible_project/.ansible_inventory
+          echo "--- End: Content of ansible_project/.ansible_inventory ---"
+        shell: bash
         
         # No need to install Ansible dependencies, I stick to basic modules only available in default ansible installation
 
