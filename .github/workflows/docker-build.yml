@@ -43,7 +43,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Create Inventory File # inventory.ini in ansible_project exists only locally, so we need to create it in the actions runner
-        run: echo "${{ secrets.INVENTORY}}" > inventory.ini # create in root directory of the actions runner
+        run: echo "${{ secrets.INVENTORY}}" > ansible_project/.ansible_inventory # create in root directory of the actions runner
         # Automatic generation of inventory possible when tf state file is remotely hosted
         shell: bash
 
@@ -68,9 +68,7 @@ jobs:
           directory: ansible_project # go to this directory
           
           
-          # Przekazujemy adres IP i użytkownika dynamicznie
-          # To zastępuje użycie pliku 'inventory.ini'
-          inventory: ../inventory.ini # inventory file in the runner
+
 
           options: --extra-vars "ansible_ssh_common_args='-o UserKnownHostsFile=../my_known_hosts'"
      
