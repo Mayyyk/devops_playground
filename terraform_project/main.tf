@@ -88,7 +88,7 @@ resource "digitalocean_firewall" "web_firewall" {
 }
 
 resource "digitalocean_droplet" "web_server" {
-  count = 4 # create n droplets
+  count = 2 # create n droplets
   image = "ubuntu-22-04-x64"
   name = "devops-app-server-${count.index + 1}"
   region = "fra1"
