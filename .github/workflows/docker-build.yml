@@ -76,10 +76,10 @@ jobs:
           fi
         
       - name: Download ansible dependencies
-        run: ansible-galaxy install -r ansible_project/requirements.yml
-        
+        run: ansible-galaxy install -r ansible_project/requirements.yml # currently there's only prometheus.prometheus collection
+
       - name: Run Ansible Playbook
-        uses: dawidd6/action-ansible-playbook@v2
+        uses: dawidd6/action-ansible-playbook@v5
         with:
           # Ścieżka do playbooka w repozytorium
           playbook: playbook.yml
@@ -88,8 +88,6 @@ jobs:
 
           inventory: ${{ secrets.INVENTORY }} # use inventory from secrets, option with file creation didn't work
           
-          
 
 
           options: --extra-vars "ansible_ssh_common_args='-o UserKnownHostsFile=../my_known_hosts'"
-     
