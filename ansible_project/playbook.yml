@@ -4,7 +4,7 @@
 
   become: yes # Execute all tasks as the root user
 
-  gather_facts: no
+  gather_facts: yes
 
   pre_tasks:
     - name: Ensure .ssh directory exists
@@ -25,12 +25,12 @@
       ignore_errors: yes
 
   roles:
-    - role: prometheus.prometheus.node_exporter
+    - role: prometheus.prometheus.node_exporter # Automatic node_exporter setup on 9100 port, systemd creation node_exporter.service | separate from terraform firewall 
 
   
   tasks:
-    - name: Manually gather sever facts
-      ansible.builtin.setup: {}
+    # - name: Manually gather sever facts
+    #   ansible.builtin.setup: {}
       
     - name: Wait 60 seconds for SSH to become available after server boot
       ansible.builtin.wait_for_connection:
