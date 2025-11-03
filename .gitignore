@@ -1,12 +1,15 @@
-# Python
-venv/
-__pycache__/
+**/*venv/
+
+**/*__pycache__/
 *.pyc
 
-# OS-specific files
 .DS_Store
 Thumbs.db
 
-# Host info
+.vscode/
+
 ansible_project/inventory.ini
+
 ansible_project/known_hosts.txt
+
+ansible_project/vars/secrets.yml

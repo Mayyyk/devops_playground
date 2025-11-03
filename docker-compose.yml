@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: ./src
+      dockerfile: Dockerfile
+
+    ports:
+      - "5000:5000"
+
+    volumes: # Live reloading and Flask automatically reloads (thanks to working in debugging mode - because of volume mapping)
+      - ./src:/src

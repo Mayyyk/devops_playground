@@ -2,13 +2,13 @@
 
 FROM python:3.10-slim 
 
-WORKDIR /app
+WORKDIR /src
 
 COPY requirements.txt .
 
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY app.py .
+COPY app.py main.py /src/
 
 ENV PYTHONBUFFERED=1
 

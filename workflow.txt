@@ -8,3 +8,9 @@ run: grep -oE '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' /home/majk/Docume
 
 4. git push
 
+
+---
+
+For local testing:
+
+1. docker compose up --build
