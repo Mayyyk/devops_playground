@@ -39,7 +39,7 @@ jobs:
     needs: build
 
     steps:
-      - name: Checkout repository
+      - name: Checkout repository # Cloning whole repo to the runner
         uses: actions/checkout@v4
 
 
@@ -75,8 +75,9 @@ jobs:
             echo "Sekret SSH_PRIVATE_KEY jest OK (ma zawartość)."
           fi
         
-        # No need to install Ansible dependencies, I stick to basic modules only available in default ansible installation
-
+      - name: Download ansible dependencies
+        run: ansible-galaxy install -r ansible_project/requirements.yml
+        
       - name: Run Ansible Playbook
         uses: dawidd6/action-ansible-playbook@v2
         with:

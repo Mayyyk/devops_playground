@@ -1,0 +1,4 @@
+---
+collections:
+  - name: prometheus.prometheus
+    version: 0.11.0 # stable version
