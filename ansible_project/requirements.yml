@@ -1,3 +1,4 @@
 ---
 collections:
   - name: prometheus.prometheus
+  # No version blocking (so less predictability) but it was needed for gh actions runner to run
