@@ -10,11 +10,12 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY app.py main.py /src/
 
-ENV PYTHONBUFFERED=1
+# More robust debugging and logging 
+ENV PYTHONUNBUFFERED=1 
 
 EXPOSE 5000
 
-CMD python app.py
+CMD ["python", "app.py"]
 
 
 # Command to run from root: docker build -t my-app -f src/Dockerfile src/

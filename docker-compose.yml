@@ -1,7 +1,9 @@
+# Local docker compose only for testing locally
+
 version: '3.8'
 
 services:
-  app:
+  app-api:
     build:
       context: ./src
       dockerfile: Dockerfile
@@ -11,3 +13,17 @@ services:
 
     volumes: # Live reloading and Flask automatically reloads (thanks to working in debugging mode - because of volume mapping)
       - ./src:/src
+
+  app-ui:
+    build:
+      context: ./src_frontend
+      dockerfile: Dockerfile
+
+    ports:
+      - "8501:8501"
+
+    environment:
+      - API_URL=http://app-api:5000
+    
+    depends_on:
+      - app-api # wait for app-api to be ready before ui starts
