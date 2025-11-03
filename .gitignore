@@ -8,5 +8,5 @@ __pycache__/
 Thumbs.db
 
 # Host info
-ansible_project/known_hosts.txt
 ansible_project/inventory.ini
+ansible_project/known_hosts.txt
