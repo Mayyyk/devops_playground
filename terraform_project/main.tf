@@ -68,6 +68,11 @@ resource "digitalocean_firewall" "web_firewall" {
     port_range       = "5000" # Allow our Flask App from anywhere
     source_addresses = ["0.0.0.0/0", "::/0"]
   }
+  inbound_rule {
+    protocol         = "tcp"
+    port_range       = "9100" # Allow requests to Node exporter
+    source_addresses = ["0.0.0.0/0", "::/0"] # temporarly open for all traffic
+  }
 
   # Rules for OUTGOING traffic
   outbound_rule {

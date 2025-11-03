@@ -1,5 +1,5 @@
 ---
-- name: Configure Web Server and Install Docker
+- name: Configure Web Server and Install Docker and Node Exporter
   hosts: webserver # run on all hosts listen under [webserver] group in inventory.ini
 
   become: yes # Execute all tasks as the root user
@@ -23,6 +23,9 @@
       changed_when: "shell_result.rc != 0"
       register: shell_result
       ignore_errors: yes
+
+  roles:
+    - role: prometheus.prometheus.node_exporter
 
   
   tasks:
