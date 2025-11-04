@@ -26,12 +26,21 @@ jobs:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }} # automatically created by github actions
 
-     - name: Build and push docker Image
+     - name: Build and push docker Image for API
        uses: docker/build-push-action@v6
        with:
         context: src
+        file: src/Dockerfile
         push: true
-        tags: ghcr.io/mayyyk/devops_playground:latest
+        tags: ghcr.io/mayyyk/devops-api:latest
+
+     - name: Build and push docker Image for UI
+       uses: docker/build-push-action@v6
+       with:
+        context: src_frontend
+        file: src_frontend/Dockerfile
+        push: true
+        tags: ghcr.io/mayyyk/devops-ui:latest
 
   deploy:
     name: Deploy to DigitalOcean Server using Ansible

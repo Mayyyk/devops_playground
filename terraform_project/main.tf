@@ -63,15 +63,36 @@ resource "digitalocean_firewall" "web_firewall" {
     port_range       = "22" # Allow SSH from anywhere
     source_addresses = ["0.0.0.0/0", "::/0"]
   }
-  inbound_rule {
-    protocol         = "tcp"
-    port_range       = "5000" # Allow our Flask App from anywhere
-    source_addresses = ["0.0.0.0/0", "::/0"]
-  }
+
+  # For kubernetes this port is unnecessary
+  # inbound_rule {
+  #   protocol         = "tcp"
+  #   port_range       = "5000" # Allow our Flask App from anywhere
+  #   source_addresses = ["0.0.0.0/0", "::/0"]
+  # }
+  
   inbound_rule {
     protocol         = "tcp"
     port_range       = "9100" # Allow requests to Node exporter
     source_addresses = ["0.0.0.0/0", "::/0"] # temporarly open for all traffic
+  }
+
+  inbound_rule {
+    protocol         = "tcp"
+    port_range       = "80" # HTTP traffic for streamlit via Ingress
+    source_addresses = ["0.0.0.0/0", "::/0"]
+  }
+
+  inbound_rule {
+    protocol         = "tcp"
+    port_range       = "443" # HTTP traffic in the future
+    source_addresses = ["0.0.0.0/0", "::/0"]
+  }
+
+  inbound_rule {
+    protocol         = "tcp"
+    port_range       = "6443" # for K3s APi
+    source_addresses = ["0.0.0.0/0", "::/0"] # up to change in the future only for servers
   }
 
   # Rules for OUTGOING traffic
