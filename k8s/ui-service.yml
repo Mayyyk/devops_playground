@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: ui-service # inner DNS name (e.g.: http://ui-service)
+spec:
+  selector:
+    app: app-ui # Target traffic routing, service talks directly with pods, not with ui-deployment, deployment just makes sure that workerks/pods work
+  ports:
+  - protocol: TCP
+    port: 8501
+    targetPort: 8501

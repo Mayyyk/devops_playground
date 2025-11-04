@@ -1,4 +1,12 @@
 ---
 collections:
-  - name: prometheus.prometheus
+  # These are the "toolkits"
   # No version blocking (so less predictability) but it was needed for gh actions runner to run
+  - name: prometheus.prometheus
+  - name: ansible.posix
+  - name: community.general
+  - name: community.kubernetes # Kubernetes client (from greek "pilot"), deliver k8s module
+  
+roles:
+    # This is the "standalone installer"
+    - src: xanmanning.k3s # K3s for lighter installation, the only task of this role is to instlal K3s

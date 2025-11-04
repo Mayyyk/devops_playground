@@ -1,4 +1,5 @@
 # Local docker compose only for testing locally
+# With use of K3d locally, this file is no longer necessary
 
 version: '3.8'
 

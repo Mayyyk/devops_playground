@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Service # Type is service
+metadata:
+  name: api-service # inner DNS name (e.g.: http://api-service)
+spec: 
+  selector:
+    app: app-api # route traffic to containers with this tag
+  ports:
+  - protocol: TCP
+    port: 5000       # Service listening on port ...
+    targetPort: 5000 # port mapping - target port in container

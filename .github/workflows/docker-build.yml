@@ -29,7 +29,7 @@ jobs:
      - name: Build and push docker Image for API
        uses: docker/build-push-action@v6
        with:
-        context: src
+        context: src # all commands are run from root directory of the repo - /
         file: src/Dockerfile
         push: true
         tags: ghcr.io/mayyyk/devops-api:latest
@@ -40,7 +40,7 @@ jobs:
         context: src_frontend
         file: src_frontend/Dockerfile
         push: true
-        tags: ghcr.io/mayyyk/devops-ui:latest
+        tags: ghcr.io/mayyyk/devops-ui:latest # separate names needed
 
   deploy:
     name: Deploy to DigitalOcean Server using Ansible

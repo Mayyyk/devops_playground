@@ -14,3 +14,40 @@ run: grep -oE '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' /home/majk/Docume
 For local testing:
 
 1. docker compose up --build
+
+
+LOCAL TESTING - docker build, k3d, kubestl | Not: Ansible, Terraform, docker-compose
+
+1. Local cluster
+
+k3d cluster create my-test-cluster -p "8080:80@loadbalancer"
+
+2. Build local images
+
+docker build -t devops-api:local ./src
+
+3. Import images to cluster
+
+k3d image import devops-api:local --cluster my-test-cluster
+
+4. Implement manifests
+
+kubectl apply -f k8s/
+
+5. Test in the browser
+
+http://localhost:8080
+
+
+
+PRODUCTION DELIVERY - git, gh actions, ansible, terraform
+
+1. Create servers
+
+Terraform apply
+
+2. correct .ymls in k8s/
+
+3. push to repo
+
+4. 

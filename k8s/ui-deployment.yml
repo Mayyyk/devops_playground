@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ui-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: app-ui
+  template:
+    metadata:
+      labels:
+        app: app-ui
+    spec:
+      containers:
+      - name: ui-container
+        image: ghcr.io/mayyyk/devops-ui:latest
+        # image: devops-ui:local # for local testing
+        # imagePullPolicy: IfNotPresent # Use local, don't try to download
+
+        ports:
+        - containerPort: 8501 # Streamlit default port
+        env:
+        - name: API_URL
+          value: "http://api-service:5000" # env var injection, name of api-deployment worker

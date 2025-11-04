@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment  # Type is Worker
+metadata:
+  name: api-deployment # deployment name
+spec:
+  replicas: 1  # desired state (n of copies)
+  selector:
+    matchLabels:
+      app: app-api # find containers / pods with this tag
+  template: # container template
+    metadata:
+      labels:
+        app: app-api # give all containers this tag
+    spec:
+      containers:
+      - name: api-container # name of the container in the cluster
+        image: ghcr.io/mayyyk/devops-api:latest # name from GH Actions CI/CD build and push
+        # image: devops-api:local # for local testing
+        # imagePullPolicy: IfNotPresent # Use local, don't try to download
+
+        ports:
+        - containerPort: 5000 # Inner ports of the pod

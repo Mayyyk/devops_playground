@@ -1,13 +1,22 @@
 ---
-- name: Configure Web Server and Install Docker and Node Exporter
+- name: Deploy K3s Cluster and Applications
   hosts: webserver # run on all hosts listen under [webserver] group in inventory.ini
 
   become: yes # Execute all tasks as the root user
 
   gather_facts: yes
 
+  vars: # One of the servers will be a master in this cluster - the first one
+    k3s_master_ip: "{{hostvars[groups['webserver'][0]]['ansible_host'] | default(groups['webserver'][0])}}"
+    k3s_token: "{{ k3s_token }}"
+
+    # This new section loads variables from encrypted file secrets.yml
+  vars_files:
+    - vars/secrets.yml # This file contains the k3s_token
+
   pre_tasks:
-    - name: Ensure .ssh directory exists
+      # --- Localhost Pre-tasks (for Ansible controller - github actions runner or other machine running CI/CD) ---
+    - name: Ensure .ssh directory exists on localhost
       delegate_to: localhost
       become: no
       ansible.builtin.file:
@@ -16,7 +25,7 @@
         mode: '0700'
       changed_when: false
     
-    - name: Add SSH host key to known_hosts
+    - name: Add remote SSH host key to localhost's known_hosts
       delegate_to: localhost
       become: no
       ansible.builtin.shell: "ssh-keyscan -H {{ inventory_hostname }} >> ~/.ssh/known_hosts" # append host key to known_hosts so that ansible doesn't stop with a prompt
@@ -24,45 +33,89 @@
       register: shell_result
       ignore_errors: yes
 
-  roles:
-    - role: prometheus.prometheus.node_exporter # Automatic node_exporter setup on 9100 port, systemd creation node_exporter.service | separate from terraform firewall 
+      # --- Remote Server (all servers included in inventory.ini) Pre-tasks ---
 
-  
-  tasks:
-    # - name: Manually gather sever facts
-    #   ansible.builtin.setup: {}
-      
-    - name: Wait 60 seconds for SSH to become available after server boot
-      ansible.builtin.wait_for_connection:
-        timeout: 60
-
-    - name: Update apt package cache
+    - name: Update apt package cache on all servers
       ansible.builtin.apt: # it's like apt-get update
         update_cache: yes
         cache_valid_time: 3600
 
-    - name: Install Docker
+    - name: Install prerequisite system packages
       ansible.builtin.apt:
-        name: docker.io
-        state: present # check if present, if not install it
-      register: apt_install_docker
-      until: apt_install_docker is not failed
-      retries: 5
-      delay: 10
+        name:
+          - curl # for k3s role to download packages
+          - python3-pip # for kubernetes
+        state: present
 
-    - name: Ensure Docker service is running and enabled on boot
-      ansible.builtin.service:
-        name: docker
-        state: started
-        enabled: yes
+    - name: Install Kubernetes Python library for Ansible k8s module
+      ansible.builtin.pip:
+        name: kubernetes # to talk with k3s
+        state: present
 
-    - name: Run Hello-Worldapp container
-      ansible.builtin.docker_container:
-        name: hello-world-app
-        image: "ghcr.io/mayyyk/devops_playground:latest"
-        state: started
-        pull: yes # Forces docker to pull lates version from registry
-        restart_policy: always
-        ports:
-          - "5000:5000"
+  roles:
+    - role: prometheus.prometheus.node_exporter # Automatic node_exporter setup on 9100 port, systemd creation node_exporter.service | separate from terraform firewall 
+    - role: xanmanning.k3s
+      vars:
+        k3s_control_node: "{{ ansible_host == k3s_master_ip }}" # become master node
+        k3s_agent_node: "{{ ansible_host != k3s_master_ip }}" # become worker node
+        # k3s_token: "{{ k3s_token }}" - not for xanmanning role
+        k3s_url: "https://{{ k3s_master_ip }}:6443"
+        k3s_extra_server_args: "--write-kubeconfig-mode=0644"
+
   
+  tasks:     
+    # ----- COMMENTED OUT - IT WAS FOR MANUAL DOCKER INSTALLATION USING ANSIBLE ----- 
+    # - name: Wait 60 seconds for SSH to become available after server boot
+    #   ansible.builtin.wait_for_connection:
+    #     timeout: 60
+
+    # - name: Install Docker
+    #   ansible.builtin.apt:
+    #     name: docker.io
+    #     state: present # check if present, if not install it
+    #   register: apt_install_docker
+    #   until: apt_install_docker is not failed
+    #   retries: 5
+    #   delay: 10
+
+    # - name: Ensure Docker service is running and enabled on boot
+    #   ansible.builtin.service:
+    #     name: docker
+    #     state: started
+    #     enabled: yes
+
+    # - name: Run Hello-Worldapp container
+    #   ansible.builtin.docker_container:
+    #     name: hello-world-app
+    #     image: "ghcr.io/mayyyk/devops_playground:latest"
+    #     state: started
+    #     pull: yes # Forces docker to pull lates version from registry
+    #     restart_policy: always
+    #     ports:
+    #       - "5000:5000"
+
+
+    # make separation only when needed
+    - block: # runs only on master's node (thank's to "when" conditional at the bottom of the block)
+      - name: Copy K8s manifest files to master node
+        ansible.builtin.copy:
+          src: ../k8s/ # local K8s folder
+          dest: /root/k8s-manifest/
+        
+      - name: Apply K8s manifests using the k8s module (from community.kubernetes) # This task applies "desired state" to the cluster
+        community.kubernetes.k8s:
+          state: present
+          # Use the kubeconfig file generated by the K3s role, runs on master's node
+          kubeconfig: /etc/rancher/k3s/k3s.yaml 
+          # Apply the manifest file from the master server's disk
+          src: "/root/k8s-manifests/{{ item }}"
+        loop: # Do this for every file in the list
+          - api-deployment.yml
+          - api-service.yml
+          - ui-deployment.yml
+          - ui-service.yml
+          - ingress.yml
+
+      # This conditional ensures this whole block only runs on the master
+      when: ansible_host == k3s_master_ip
+
