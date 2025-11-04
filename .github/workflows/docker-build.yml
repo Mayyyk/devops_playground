@@ -100,3 +100,4 @@ jobs:
 
 
           options: --extra-vars "ansible_ssh_common_args='-o UserKnownHostsFile=../my_known_hosts'"
+          vault_password: ${{ secrets.ANSIBLE_VAULT_PASS }}
