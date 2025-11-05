@@ -52,22 +52,28 @@
         name: kubernetes # to talk with k3s
         state: present
 
+    - name: Wait 60 seconds for SSH to become available after server boot
+      ansible.builtin.wait_for_connection:
+        timeout: 60
+
+    - name: Set K3s node roles as facts
+      ansible.builtin.set_fact:
+        k3s_control_node: "{{ ansible_host == k3s_master_ip }}" # become master node
+        k3s_agent_node: "{{ ansible_host != k3s_master_ip }}" # become worker node
+        
+
   roles:
     - role: prometheus.prometheus.node_exporter # Automatic node_exporter setup on 9100 port, systemd creation node_exporter.service | separate from terraform firewall 
     - role: xanmanning.k3s
       vars:
-        k3s_control_node: "{{ ansible_host == k3s_master_ip }}" # become master node
-        k3s_agent_node: "{{ ansible_host != k3s_master_ip }}" # become worker node
         # k3s_token: "{{ k3s_token }}" - not for xanmanning role
-        k3s_url: "https://{{ k3s_master_ip }}:6443"
+        k3s_url: "https://{{ k3s_master_ip }}:6443" # for agents to know the master's ip
         k3s_extra_server_args: "--write-kubeconfig-mode=0644"
 
   
   tasks:     
     # ----- COMMENTED OUT - IT WAS FOR MANUAL DOCKER INSTALLATION USING ANSIBLE ----- 
-    # - name: Wait 60 seconds for SSH to become available after server boot
-    #   ansible.builtin.wait_for_connection:
-    #     timeout: 60
+
 
     # - name: Install Docker
     #   ansible.builtin.apt:
