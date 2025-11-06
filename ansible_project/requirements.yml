@@ -5,7 +5,7 @@ collections:
   - name: prometheus.prometheus
   - name: ansible.posix
   - name: community.general
-  - name: community.kubernetes # Kubernetes client (from greek "pilot"), deliver k8s module
+  - name: kubernetes.core # Kubernetes client (from greek "pilot"), deliver k8s module
   
 roles:
     # This is the "standalone installer"
