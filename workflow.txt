@@ -1,3 +1,8 @@
+Scalable On-Demand Compute Platform
+
+----------------------------------------------------------
+
+
 LOCAL TESTING - docker build, k3d, kubestl | Not: Ansible, Terraform, docker-compose
 
 1. Local cluster - ONE TIME
@@ -31,6 +36,18 @@ kubectl get ing
 kubectl apply -f k8s/
 k3d cluster list
 
+I can run imperative commands with kubectl instead of declarative for more control.
+
+----------------------------------------------------------
+
+VSC Workflow
+
+master, dev, feat/... - from feat/* merge to dev
+
+Commits after every "atom" part finished
+
+Push once/twice / day for backup
+
 ----------------------------------------------------------
 
 
@@ -63,7 +80,35 @@ copy ips to prometheus.yml
 
 6. Monitoring
 
----------
+----------------------------------------------------------
+
+CRISIS HANDLING:
+
+When false reconciliation loop runs:
+kubectl --kubeconfig=/etc/rancher/k3s/k3s.yaml scale deployment api-deployment --replicas=0
+kubectl --kubeconfig=/etc/rancher/k3s/k3s.yaml scale deployment ui-deployment --replicas=0
+
+
+/usr/local/bin/k3s-uninstall.sh - master
+/usr/local/bin/k3s-agent-uninstall.sh - worker
+
+
+
+----------------------------------------------------------
+
+Traffic simulation
+
+
+
+
+
+
+
+
+
+--------------------------------------
+
+TECHNOLOGIES MAP
 
 Terraform - create servers
 

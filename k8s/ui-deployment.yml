@@ -12,9 +12,12 @@ spec:
       labels:
         app: app-ui
     spec:
+      imagePullSecrets:
+        - name: ghcr-creds
       containers:
       - name: ui-container
-        image: ghcr.io/mayyyk/devops-ui:latest
+        image: ghcr.io/mayyyk/devops-ui:latest # in gh actions it's set to point to 'master' branch.
+
         # image: devops-ui:local # for local testing
         # imagePullPolicy: IfNotPresent # Use local, don't try to download
 

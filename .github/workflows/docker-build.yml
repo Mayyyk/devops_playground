@@ -2,7 +2,7 @@ name: CI/CD Pipeline - Build and Deploy
 
 on:
   push:
-    branches: [master, main, dev]
+    branches: [master, dev, 'feat/**']
   workflow_dispatch: # Option to run manually from GitHub UI Actions tab
 
 jobs:
@@ -12,8 +12,7 @@ jobs:
 
     permissions:
       contents: read
-      packages: write
-
+      packages: write # push to ghcr.io
 
     steps:
      - name: check out code
@@ -26,13 +25,27 @@ jobs:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }} # automatically created by github actions
 
+     - name: Generate Docker image tag
+       id: generate_tag
+       run: |
+          # Get branch name (e.g., 'feat/my-fix')
+          BRANCH_NAME=$(echo "${{ github.ref_name }}")
+          # Clean it up for use as a tag (e.g., 'feat-my-fix')
+          TAG=$(echo $BRANCH_NAME | tr '/' '-')
+          # If it's the 'main' branch, use 'latest' tag
+          if [ "$BRANCH_NAME" == "main" ]; then
+            TAG="latest"
+          fi
+          echo "tag=${TAG}" >> $GITHUB_OUTPUT
+
+    
      - name: Build and push docker Image for API
        uses: docker/build-push-action@v6
        with:
         context: src # all commands are run from root directory of the repo - /
         file: src/Dockerfile
         push: true
-        tags: ghcr.io/mayyyk/devops-api:latest
+        tags: ghcr.io/devops-api:${{ steps.generate_tag.outputs.tag }}
 
      - name: Build and push docker Image for UI
        uses: docker/build-push-action@v6
@@ -40,12 +53,14 @@ jobs:
         context: src_frontend
         file: src_frontend/Dockerfile
         push: true
-        tags: ghcr.io/mayyyk/devops-ui:latest # separate names needed
+        tags: ghcr.io/mayyyk/devops-ui:${{ steps.generate_tag.outputs.tag }}
 
   deploy:
     name: Deploy to DigitalOcean Server using Ansible
     runs-on: ubuntu-latest
     needs: build
+
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev'
 
     steps:
       - name: Checkout repository # Cloning whole repo to the runner
@@ -90,7 +105,7 @@ jobs:
       - name: Run Ansible Playbook
         uses: dawidd6/action-ansible-playbook@v5
         with:
-          # Ścieżka do playbooka w repozytorium
+          # path in repo
           playbook: playbook.yml
           
           directory: ansible_project # go to this directory

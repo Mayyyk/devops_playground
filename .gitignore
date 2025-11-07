@@ -15,3 +15,5 @@ ansible_project/known_hosts.txt
 ansible_project/vars/secrets.yml
 
 *sync-conflict*
+
+GEMINI.md

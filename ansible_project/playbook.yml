@@ -130,7 +130,7 @@
       - name: Copy K8s manifest files to master node
         ansible.builtin.copy:
           src: ../k8s/ # local K8s folder
-          dest: /root/k8s-manifest/
+          dest: /root/k8s-manifests/
         
       - name: Apply K8s manifests using the k8s module (from community.kubernetes) # This task applies "desired state" to the cluster
         kubernetes.core.k8s:
