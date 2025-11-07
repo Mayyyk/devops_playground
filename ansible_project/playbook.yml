@@ -9,6 +9,10 @@
   vars: # One of the servers will be a master in this cluster - the first one
     k3s_master_ip: "{{hostvars[groups['webserver'][0]]['ansible_host'] | default(groups['webserver'][0])}}"
     k3s_token: "{{ vault_k3s_token }}"
+    k3s_control_node: "{{ ansible_host == k3s_master_ip }}"
+    k3s_agent_node: "{{ ansible_host != k3s_master_ip }}"
+    k3s_url: "https://{{ k3s_master_ip }}:6443"
+    k3s_extra_server_args: "--write-kubeconfig-mode=0644"
 
     # This new section loads variables from encrypted file secrets.yml
   vars_files:
@@ -55,21 +59,11 @@
     - name: Wait 60 seconds for SSH to become available after server boot
       ansible.builtin.wait_for_connection:
         timeout: 60
-
-    - name: Set K3s node roles as facts
-      ansible.builtin.set_fact:
-        k3s_control_node: "{{ ansible_host == k3s_master_ip }}" # become master node
-        k3s_agent_node: "{{ ansible_host != k3s_master_ip }}" # become worker node
         
 
   roles:
     - role: prometheus.prometheus.node_exporter # Automatic node_exporter setup on 9100 port, systemd creation node_exporter.service | separate from terraform firewall 
     - role: xanmanning.k3s
-      vars:
-        k3s_control_node: "{{ k3s_control_node }}" # Use the fact we set
-        k3s_agent_node: "{{ k3s_agent_node }}" # Use the fact we set
-        k3s_url: "https://{{ k3s_master_ip }}:6443" # for agents to know the master's ip
-        k3s_extra_server_args: "--write-kubeconfig-mode=0644"
 
   
   tasks:     
