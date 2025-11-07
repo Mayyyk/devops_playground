@@ -12,10 +12,13 @@ k3d cluster create my-test-cluster --servers 1 --agents 1 -p "8080:80@loadbalanc
 2. Build local images - REPETITVE
 
 docker build -t devops-api:local ./src
+docker build -t devops-ui:local ./src
 
 3. Import images to cluster - REPETITVE
 
 k3d image import devops-api:local --cluster my-test-cluster
+k3d image import devops-ui:local --cluster my-test-cluster
+
 
 4. Implement manifests - REPETITVE
 
