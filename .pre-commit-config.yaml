@@ -1,0 +1,38 @@
+repos:
+  # --- Podstawowe sprzątanie ---
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: trailing-whitespace # Usuwa białe znaki na końcu linii
+      - id: end-of-file-fixer   # Upewnia się, że plik kończy się jedną pustą linią
+      - id: check-yaml          # Sprawdza, czy pliki YAML mają poprawną składnię
+      - id: check-json          # Sprawdza, czy pliki JSON mają poprawną składnię
+      - id: check-merge-conflict # Blokuje commit, jeśli masz konflikty
+  
+  # --- Formatter Pythona (Black) ---
+  - repo: https://github.com/psf/black
+    rev: 24.10.1
+    hooks:
+      - id: black
+
+  # --- Formatter Terraform ---
+  - repo: https://github.com/terraform-docs/pre-commit-terraform
+    rev: v1.0.0
+    hooks:
+      - id: terraform_fmt # Uruchamia `terraform fmt`
+
+  # --- Linter Terraform (TFLint) ---
+  # Uwaga: tflint musi być już zainstalowany w kontenerze (co masz)
+  - repo: https://github.com/terraform-linters/tflint
+    rev: v0.51.2
+    hooks:
+      - id: tflint
+        args:
+          - "--config=.tflint.hcl"
+          - "--recursive"
+
+  # --- Linter Ansible ---
+  - repo: https://github.com/ansible/ansible-lint
+    rev: v24.7.0
+    hooks:
+      - id: ansible-lint

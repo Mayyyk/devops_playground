@@ -42,6 +42,10 @@
 
       # --- Remote Server (all servers included in inventory.ini) Pre-tasks ---
 
+    - name: Wait 60 seconds for SSH to become available after server boot
+      ansible.builtin.wait_for_connection:
+        timeout: 60
+        
     - name: Update apt package cache on all servers
       ansible.builtin.apt: # it's like apt-get update
         update_cache: yes
@@ -58,10 +62,6 @@
       ansible.builtin.pip:
         name: kubernetes # to talk with k3s
         state: present
-
-    - name: Wait 60 seconds for SSH to become available after server boot
-      ansible.builtin.wait_for_connection:
-        timeout: 60
         
 
   roles:

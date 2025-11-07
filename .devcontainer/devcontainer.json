@@ -19,6 +19,8 @@
 		"ghcr.io/devcontainers-extra/features/ansible:2": {}
 	},
 
+	"postCreateCommand": "pip install pre-commit && pre-commit install",
+
 	// Use this environment variable if you need to bind mount your local source code into a new container.
 	"remoteEnv": {
 		"LOCAL_WORKSPACE_FOLDER": "${localWorkspaceFolder}"

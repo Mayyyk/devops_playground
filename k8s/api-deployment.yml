@@ -16,10 +16,10 @@ spec:
         - name: ghcr-creds
       containers:
       - name: api-container # name of the container in the cluster
-        image: ghcr.io/mayyyk/devops-api:latest # name from GH Actions CI/CD build and push - points to 'master' branch
+        # image: ghcr.io/mayyyk/devops-api:latest # name from GH Actions CI/CD build and push - points to 'master' branch
 
-        # image: devops-api:local # for local testing
-        # imagePullPolicy: IfNotPresent # Use local, don't try to download
+        image: devops-api:local # for local testing
+        imagePullPolicy: IfNotPresent # Use local, don't try to download
 
         ports:
         - containerPort: 5000 # Inner ports of the pod
