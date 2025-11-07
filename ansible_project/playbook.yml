@@ -32,6 +32,17 @@
         mode: '0700'
       changed_when: false
     
+    - name: Wait for SSH to become available on remote host
+      delegate_to: localhost
+      become: no
+      ansible.builtin.wait_for:
+        host: "{{ inventory_hostname }}"
+        port: 22
+        delay: 10
+        timeout: 60
+        state: started
+      changed_when: false
+
     - name: Add remote SSH host key to localhost's known_hosts
       delegate_to: localhost
       become: no
@@ -41,10 +52,6 @@
       ignore_errors: yes
 
       # --- Remote Server (all servers included in inventory.ini) Pre-tasks ---
-
-    - name: Wait 60 seconds for SSH to become available after server boot
-      ansible.builtin.wait_for_connection:
-        timeout: 60
         
     - name: Update apt package cache on all servers
       ansible.builtin.apt: # it's like apt-get update
