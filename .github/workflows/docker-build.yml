@@ -45,7 +45,7 @@ jobs:
         context: src # all commands are run from root directory of the repo - /
         file: src/Dockerfile
         push: true
-        tags: ghcr.io/devops-api:${{ steps.generate_tag.outputs.tag }}
+        tags: ghcr.io/mayyyk/devops-api:${{ steps.generate_tag.outputs.tag }}
 
      - name: Build and push docker Image for UI
        uses: docker/build-push-action@v6
