@@ -1,16 +1,126 @@
-1. terraform apply
+Scalable On-Demand Compute Platform
 
-2. terraform ip to INVENTORY in github actions, and KNOWN_HOSTS via ssh-keyscan -H ip:
+----------------------------------------------------------
+
+
+LOCAL TESTING - docker build, k3d, kubestl | Not: Ansible, Terraform, docker-compose
+
+1. Local cluster - ONE TIME
+
+k3d cluster create my-test-cluster --servers 1 --agents 1 -p "8080:80@loadbalancer"
+
+2. Build local images - REPETITVE
+
+docker build -t devops-api:local ./src
+docker build -t devops-ui:local ./src
+
+3. Import images to cluster - REPETITVE
+
+k3d image import devops-api:local --cluster my-test-cluster
+k3d image import devops-ui:local --cluster my-test-cluster
+
+
+4. Implement manifests - REPETITVE
+
+kubectl apply -f k8s/
+
+5. Test in the browser
+
+http://localhost:8080
+
+----------------------------------------------------------
+
+USEFUL COMMANDS:
+
+kubectl get pods
+kubectl get svc
+kubectl get ing 
+
+kubectl apply -f k8s/
+k3d cluster list
+
+I can run imperative commands with kubectl instead of declarative for more control.
+
+----------------------------------------------------------
+
+VSC Workflow
+
+master, dev, feat/... - from feat/* merge to dev
+
+Commits after every "atom" part finished
+
+Push once/twice / day for backup
+
+----------------------------------------------------------
+
+
+PRODUCTION DELIVERY - git, gh actions, ansible, terraform
+
+1. Create servers
+
+Terraform apply
+
+terraform ip to INVENTORY in github actions, and KNOWN_HOSTS via ssh-keyscan -H ip:
 
 run: grep -oE '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' /home/majk/Documents/Coding/coding_projects/devops/ansible_project/inventory.ini | xargs -I {} ssh-keyscan -H {} > /home/majk/Documents/Coding/coding_projects/devops/ansible_project/known_hosts.txt
 
-3. copy ips to prometheus.yml 
+copy ips to prometheus.yml
 
-4. git push
+2. correct .ymls in k8s/
+
+3. push to repo
+
+4.0. gh actions run - build and deploy docker images
+
+4.1. ansibles runs playbook
+- server connection
+- install k3s
+- install node exporter
+- copy k8s/
+- kubctl apply done via community.kubernetes.k8s
+
+5. k3s on server working and rolling updates
+
+6. Monitoring
+
+----------------------------------------------------------
+
+CRISIS HANDLING:
+
+When false reconciliation loop runs:
+kubectl --kubeconfig=/etc/rancher/k3s/k3s.yaml scale deployment api-deployment --replicas=0
+kubectl --kubeconfig=/etc/rancher/k3s/k3s.yaml scale deployment ui-deployment --replicas=0
 
 
----
+/usr/local/bin/k3s-uninstall.sh - master
+/usr/local/bin/k3s-agent-uninstall.sh - worker
 
-For local testing:
 
-1. docker compose up --build
+
+----------------------------------------------------------
+
+Traffic simulation
+
+
+
+
+
+
+
+
+
+--------------------------------------
+
+TECHNOLOGIES MAP
+
+Terraform - create servers
+
+Ansible - configure servers, install K3s
+
+GH actions - build Docker images and push to registry, run Ansible
+
+K3s - Download images from registry, run according to manifests in k8s/
+
+Ingress inside K3s - put app UI on port 80
+
+Kubectl (locally) - talks with k3d (locally) or K3s (remotely, if configured)

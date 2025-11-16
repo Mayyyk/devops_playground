@@ -3,100 +3,107 @@ name: CI/CD Pipeline - Build and Deploy
 on:
   push:
     branches: [master, main, dev]
-  workflow_dispatch: # Option to run manually from GitHub UI Actions tab
+  workflow_dispatch:
 
 jobs:
   build:
     name: Build and Push Docker Image
     runs-on: ubuntu-latest
-
     permissions:
       contents: read
       packages: write
 
-
     steps:
-     - name: check out code
-       uses: actions/checkout@v4
-
-     - name: Log in to GitHub Container Registry
-       uses: docker/login-action@v3
-       with:
-        registry: ghcr.io
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }} # automatically created by github actions
-
-     - name: Build and push docker Image for API
-       uses: docker/build-push-action@v6
-       with:
-        context: src
-        file: src/Dockerfile
-        push: true
-        tags: ghcr.io/mayyyk/devops-api:latest
-
-     - name: Build and push docker Image for UI
-       uses: docker/build-push-action@v6
-       with:
-        context: src_frontend
-        file: src_frontend/Dockerfile
-        push: true
-        tags: ghcr.io/mayyyk/devops-ui:latest
-
-  deploy:
-    name: Deploy to DigitalOcean Server using Ansible
-    runs-on: ubuntu-latest
-    needs: build
-
-    steps:
-      - name: Checkout repository # Cloning whole repo to the runner
+      - name: Check out code
         uses: actions/checkout@v4
 
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Create Known Hosts File
-        run: echo "${{ secrets.KNOWN_HOSTS}}" > my_known_hosts # create known_hosts file in root directory of the actions runner
-        shell: bash
+      - name: Build and push docker Image for API
+        uses: docker/build-push-action@v6
+        with:
+          context: src
+          file: src/Dockerfile
+          push: true
+          tags: ghcr.io/mayyyk/devops-api:latest
+
+      - name: Build and push docker Image for UI
+        uses: docker/build-push-action@v6
+        with:
+          context: src_frontend
+          file: src_frontend/Dockerfile
+          push: true
+          tags: ghcr.io/mayyyk/devops-ui:latest
+
+  deploy:
+    name: Provision and Deploy to DigitalOcean
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.2.5
+
+      - name: Terraform Init
+        id: init
+        run: terraform init
+        working-directory: ./terraform_project
+        env:
+          TF_VAR_do_token: ${{ secrets.DO_TOKEN }}
+
+      - name: Terraform Apply
+        id: apply
+        run: terraform apply -auto-approve
+        working-directory: ./terraform_project
+        env:
+          TF_VAR_do_token: ${{ secrets.DO_TOKEN }}
+
+      - name: Get Server IPs
+        id: ips
+        run: echo "::set-output name=ip_addresses::$(terraform output -json droplet_ip_address)"
+        working-directory: ./terraform_project
+
+      - name: Create Inventory
+        id: inventory
+        run: |
+          echo "[webserver]" > inventory.ini
+          for ip in $(echo '${{ steps.ips.outputs.ip_addresses }}' | jq -r '.[]'); do
+            echo "$ip ansible_user=root" >> inventory.ini
+          done
+        working-directory: ./ansible_project
 
       - name: Set up SSH key
         uses: webfactory/ssh-agent@v0.9.0
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
-      - name: Debug Secrets (Check if Empty)
-        # This step uses bash to check if the secrets are empty
-        # This avoids the 'length()' function which fails parsing.
-        shell: bash
+      - name: Add hosts to known_hosts
         run: |
-          if [ -z "${{ secrets.INVENTORY }}" ]; then
-            echo "::error:: Sekret INVENTORY jest PUSTY."
-          else
-            echo "Sekret INVENTORY jest OK (ma zawartość)."
-          fi
-          
-          if [ -z "${{ secrets.KNOWN_HOSTS }}" ]; then
-            echo "::error:: Sekret KNOWN_HOSTS jest PUSTY."
-          else
-            echo "Sekret KNOWN_HOSTS jest OK (ma zawartość)."
-          fi
-          
-          if [ -z "${{ secrets.SSH_PRIVATE_KEY }}" ]; then
-            echo "::error:: Sekret SSH_PRIVATE_KEY jest PUSTY."
-          else
-            echo "Sekret SSH_PRIVATE_KEY jest OK (ma zawartość)."
-          fi
-        
+          for ip in $(echo '${{ steps.ips.outputs.ip_addresses }}' | jq -r '.[]'); do
+            ssh-keyscan -H $ip >> ~/.ssh/known_hosts
+          done
+
       - name: Download ansible dependencies
-        run: ansible-galaxy install -r ansible_project/requirements.yml # currently there's only prometheus.prometheus collection
+        run: ansible-galaxy install -r requirements.yml
+        working-directory: ./ansible_project
 
       - name: Run Ansible Playbook
         uses: dawidd6/action-ansible-playbook@v5
         with:
-          # Ścieżka do playbooka w repozytorium
           playbook: playbook.yml
-          
-          directory: ansible_project # go to this directory
-
-          inventory: ${{ secrets.INVENTORY }} # use inventory from secrets, option with file creation didn't work
-          
-
-
-          options: --extra-vars "ansible_ssh_common_args='-o UserKnownHostsFile=../my_known_hosts'"
+          directory: ./ansible_project
+          inventory: inventory.ini
+          vault_password: ${{ secrets.ANSIBLE_VAULT_PASSWORD }}
+          options: |
+            --extra-vars "github_token=${{ secrets.GITHUB_TOKEN }}"

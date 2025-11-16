@@ -1,17 +1,33 @@
+# Python
 **/*venv/
-
 **/*__pycache__/
 *.pyc
+build/
+dist/
+*.egg-info/
+*.log
 
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS-specific
 .DS_Store
 Thumbs.db
 
-.vscode/
-
+# Ansible
 ansible_project/inventory.ini
-
 ansible_project/known_hosts.txt
-
 ansible_project/vars/secrets.yml
 
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.backup
+
+# Other
 *sync-conflict*
+.devcontainer/
+.gemini/
