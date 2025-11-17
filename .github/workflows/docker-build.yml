@@ -57,9 +57,8 @@ jobs:
 
       - name: Create Terraform Cloud credentials file
         run: |
-          mkdir -p ~/.terraform.d
-          echo "{\"credentials\": {\"app.terraform.io\": {\"token\": \"${{ secrets.TFC_TOKEN }}\"}}}" > ~/.terraform.d/credentials.tfrc.json
-        working-directory: ./terraform_project
+          mkdir -p ./terraform_project/.terraform.d
+          echo "{\"credentials\": {\"app.terraform.io\": {\"token\": \"${{ secrets.TFC_TOKEN }}\"}}}" > ./terraform_project/.terraform.d/credentials.tfrc.json
         shell: bash
 
       - name: Terraform Init
@@ -68,7 +67,7 @@ jobs:
         working-directory: ./terraform_project
         env:
           TF_VAR_do_token: ${{ secrets.DO_TOKEN }}
-          TFC_TOKEN: ${{ secrets.TFC_TOKEN }}
+          TF_CLI_CONFIG_FILE: ./terraform_project/.terraform.d/credentials.tfrc.json
 
       - name: Terraform Apply
         id: apply
@@ -76,7 +75,7 @@ jobs:
         working-directory: ./terraform_project
         env:
           TF_VAR_do_token: ${{ secrets.DO_TOKEN }}
-          TFC_TOKEN: ${{ secrets.TFC_TOKEN }}
+          TF_CLI_CONFIG_FILE: ./terraform_project/.terraform.d/credentials.tfrc.json
 
       - name: Set up SSH key
         uses: webfactory/ssh-agent@v0.9.0
