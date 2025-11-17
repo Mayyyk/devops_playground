@@ -67,3 +67,50 @@ Frontend (Streamlit) nie prosi "Policz", ale "Zleć 10 000 zadań".
 API (Flask) staje się "Dyspozytorem". Wrzuca 10 000 wiadomości (zadań) do kolejki (np. Redis).
 
 Tworzysz nowy Deployment K8s (worker-deployment), który jest "Robotnikiem". Jego jedyną rolą jest pobieranie zadań z kolejki, liczenie (main.py) i zapisywanie wyniku (np. do bazy danych lub z powrotem do Redis).
+
+
+----
+
+SENIOR MINDSET
+
+1. Mentalność Seniora #1: "Wszystko w końcu zawiedzie"
+Praktyka: Pełna Obserwowalność (Observability)
+Twój stan obecny: Masz Grafanę, która monitoruje hosta (CPU, RAM). To jest świetne, ale to jest monitoring infrastruktury.
+Problem: Co, jeśli Twój api-deployment zwróci błąd 500? Albo jeśli symulacja poda zły wynik? Twój dashboard Grafany nadal będzie pokazywał 5% CPU i zielone światło.
+Praktyka Seniora: Musisz monitorować aplikację. To są trzy filary:
+Metryki (Metrics): Nie tylko CPU serwera, ale metryki biznesowe. Użyj prometheus-client w swojej aplikacji Flask (app.py), aby wystawić metryki: simulation_requests_total (ile symulacji?), simulation_duration_seconds (jak długo trwają?), simulation_errors_total (ile błędów?).
+Logi (Logging): Co się stanie, gdy kubectl scale ... --replicas=50? Gdzie trafia print() z tych 50 kontenerów? Znikają. Profesjonalista wdraża centralny system logowania (np. Loki lub Fluentd+Elasticsearch). Wszystkie logi ze wszystkich Podów płyną do jednego miejsca, gdzie możesz je przeszukiwać.
+Ślady (Tracing): Twoje UI jest wolne. Dlaczego? To wina API? Bazy danych? Sieci K3s? Tracing (np. OpenTelemetry) śledzi jedno żądanie przez wszystkie Twoje serwisy (ui -> api -> worker) i pokazuje Ci na wykresie, gdzie spędziło najwięcej czasu.
+Wartość (za którą płacą): Zredukowanie "Mean Time to Resolution" (MTTR). Gdy klient dzwoni, że "nie działa", znajdujesz przyczynę w 30 sekund, a nie w 3 dni.
+2. Mentalność Seniora #2: "Nie ufaj nikomu"
+Praktyka: Bezpieczeństwo od Podstaw (Zero Trust)
+Twój stan obecny: Masz imagePullSecrets, co jest doskonałe. Zabezpieczyłeś dostęp do rejestru.
+Problem: Wewnątrz Twojego klastra K3s panuje "dziki zachód". Domyślnie każdy Pod może rozmawiać z każdym Podem. Gdyby atakujący włamał się do Twojego ui-deployment (bo Streamlit miał lukę), może z niego swobodnie skanować porty i atakować api-deployment.
+Praktyka Seniora: Implementacja Polityk Sieciowych (Network Policies). To jest firewall wewnątrz K8s. Piszesz prosty plik YAML, który mówi:
+"Pody z etykietą app: app-ui mogą inicjować połączenia tylko do Podów app: app-api na porcie 5000."
+"Pody app: app-api nie mogą inicjować żadnych połączeń wychodzących."
+"Domyślnie zablokuj cały inny ruch."
+Wartość: Drastycznie redukujesz powierzchnię ataku (Attack Surface). Włamanie do frontendu staje się irytujące, ale nie katastrofalne.
+3. Mentalność Seniora #3: "Zmiana to największe ryzyko"
+Praktyka: Progresywne Wdrożenia i GitOps
+Twój stan obecny: git push dev uruchamia ansible-playbook, który robi kubectl apply. K3s robi "Rolling Update" (stopniowo podmienia stare Pody na nowe).
+Problem: Co, jeśli nowy obraz devops-api:dev ma krytyczny błąd (np. błąd w logice Pythona), który powoduje awarię przy starcie? Rolling update wymieni 100% Twoich działających Podów na 100% niedziałających. Twoja aplikacja ma 100% przestoju (downtime).
+Praktyka Seniora: GitOps (np. ArgoCD lub Flux) i Canary Deployments.
+GitOps: Zamiast ansible-playbook robiącego kubectl apply, Twój playbook tylko instaluje w klastrze agenta ArgoCD. Mówisz ArgoCD: "Proszę, obserwuj mój branch dev w folderze k8s/". Od teraz, gdy chcesz coś wdrożyć, nigdy nie uruchamiasz kubectl apply. Po prostu commitujesz zmianę do k8s/api-deployment.yml (np. image: ...:v1.2). ArgoCD sam to wykrywa i wdraża. Masz pełną historię każdej zmiany w infrastrukturze w Gicie.
+Canary Deployment: ArgoCD (wraz z narzędziami jak Flagger) pozwala Ci powiedzieć: "Wdróż nową wersję, ale puść na nią tylko 5% ruchu. Obserwuj metryki z Prometheusa (Pillar #1). Jeśli liczba błędów nie wzrośnie przez 5 minut, puść 20% ruchu. Jeśli wszystko OK, puść 100% i usuń starą wersję."
+Wartość: Wdrożenia bez strachu (Zero-Fear Deployment) i bez przestojów (Zero-Downtime).
+4. Mentalność Seniora #4: "Buduj dla swojego następcy"
+Praktyka: Zautomatyzowane Testy Jakości
+Twój stan obecny: Testujesz lokalnie (k3d), a potem "ręcznie" sprawdzasz, czy na produkcji działa http://<IP>.
+Problem: To nie jest skalowalne i jest podatne na błędy. Zapomnisz czegoś sprawdzić.
+Praktyka Seniora: Testy są częścią pipeline'u. Ludzie płacą za przewidywalną jakość.
+Unit Tests (w Pythonie): Wprowadź pytest. Testuj swoje klasy OOP (WaterTankModel) w izolacji. Uruchamiaj je w kroku build w GitHub Actions. Jeśli pytest zawiedzie, obraz nawet się nie zbuduje.
+Integration Tests (w Pipeline): Po wdrożeniu na dev, Twój pipeline CI/CD powinien mieć kolejny job, który uruchamia k6 lub locust (Twoje narzędzia do generowania ruchu) na adres http://<IP_SERWERA_DEV>. Ten test sprawdza: "Czy aplikacja odpowiada? Czy zwraca poprawny JSON? Czy nie wywala się pod lekkim obciążeniem?"
+Wartość: Pewność (Confidence). Możesz refaktoryzować kod (WaterTankModel) i masz pewność, że niczego nie zepsułeś, bo "pilnują" Cię automatyczne testy.
+5. Mentalność Seniora #5: "Rozwiązuj problemy biznesowe, nie techniczne"
+Praktyka: Skupienie na Wartości
+Twój stan obecny: Zbudowałeś platformę K3s do uruchamiania symulatora.
+Problem: Zakochałeś się w platformie (co jest normalne, bo jest świetna).
+Praktyka Seniora: Platforma jest tylko środkiem do celu. Celem jest rozwiązanie problemu symulatora. Pytanie, za które płacą ludzie, brzmi: "Jak mogę użyć tej platformy, aby mój symulator był 10x szybszy/lepszy?"
+Twój następny krok (powrót do OOP i aplikacji): Dokładnie to, co sugerowałem wcześniej. Przejdź na architekturę "kolejkową". Niech Twój Streamlit UI pozwala zlecić 10 000 symulacji. Niech api-deployment wrzuca je do kolejki (np. Redis Deployment w K8s). Stwórz worker-deployment, który pobiera zadania z kolejki. Użyj Horizontal Pod Autoscaler (HPA), aby K8s automatycznie skalował Twoje worker-deployment od 0 do 50 Podów, gdy w kolejce są zadania, i z powrotem do 0, gdy kolejka jest pusta.
+Wartość: Właśnie przeszedłeś od "zabawki, która rysuje wykres" do "masywnie równoległej, chmurowej platformy obliczeniowej", która może rozwiązywać prawdziwe problemy inżynieryjne (analiza Monte Carlo, optymalizacja parametrów). Za to ludzie płacą gigantyczne pieniądze.
