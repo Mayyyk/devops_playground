@@ -43,10 +43,9 @@ data "digitalocean_ssh_key" "laptop_key" { # first is resource type, second is l
   name = "laptop_linux"
 }
 
-# Add it later
-# data "digitalocean_ssh_key" "pc_key" {
-#   name = "pc_linux"
-# }
+data "digitalocean_ssh_key" "pc_key" { # that's in security tab in DO
+  name = "pc_linux"
+}
 
 
 resource "digitalocean_firewall" "web_firewall" {
@@ -120,7 +119,7 @@ resource "digitalocean_droplet" "web_server" {
   region = "fra1"
   size = "s-1vcpu-1gb"
 
-  ssh_keys = [data.digitalocean_ssh_key.laptop_key.id]
+  ssh_keys = [data.digitalocean_ssh_key.laptop_key.id, data.digitalocean_ssh_key.pc_key.id]
 
   tags = [local.app_tag] # assign the same tag as firewall to auto apply it
 }
@@ -149,5 +148,5 @@ output "droplet_ip_address" {
 
 output "ssh_keys_on_server" {
   description = "Names of the SSH keys installed on the server"
-  value = [data.digitalocean_ssh_key.laptop_key.name]
+  value = [data.digitalocean_ssh_key.laptop_key.name, data.digitalocean_ssh_key.pc_key.name]
 }

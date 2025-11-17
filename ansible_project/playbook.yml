@@ -1,68 +1,58 @@
----
-- name: Configure Web Server and Install Docker and Node Exporter
-  hosts: webserver # run on all hosts listen under [webserver] group in inventory.ini
-
-  become: yes # Execute all tasks as the root user
-
+--- 
+- name: Configure K3s Master
+  hosts: k3s_master
+  become: yes # execute tasks as root
   gather_facts: yes
-
-  pre_tasks:
-    - name: Ensure .ssh directory exists
-      delegate_to: localhost
-      become: no
-      ansible.builtin.file:
-        path: ~/.ssh
-        state: directory
-        mode: '0700'
-      changed_when: false
-    
-    - name: Add SSH host key to known_hosts
-      delegate_to: localhost
-      become: no
-      ansible.builtin.shell: "ssh-keyscan -H {{ inventory_hostname }} >> ~/.ssh/known_hosts" # append host key to known_hosts so that ansible doesn't stop with a prompt
-      changed_when: "shell_result.rc != 0"
-      register: shell_result
-      ignore_errors: yes
-
   roles:
-    - role: prometheus.prometheus.node_exporter # Automatic node_exporter setup on 9100 port, systemd creation node_exporter.service | separate from terraform firewall 
-
-  
+    - role: prometheus.prometheus.node_exporter
   tasks:
-    # - name: Manually gather sever facts
-    #   ansible.builtin.setup: {}
-      
-    - name: Wait 60 seconds for SSH to become available after server boot
+    - name: Wait for SSH to become available
       ansible.builtin.wait_for_connection:
         timeout: 60
 
     - name: Update apt package cache
-      ansible.builtin.apt: # it's like apt-get update
+      ansible.builtin.apt:
         update_cache: yes
         cache_valid_time: 3600
 
-    - name: Install Docker
+    - name: Install K3s server
+      ansible.builtin.shell: >
+        curl -sfL https://get.k3s.io | sh -s - 
+        --write-kubeconfig-mode 644 
+        --disable traefik 
+        --node-name k3s-master
+      args:
+        creates: /etc/rancher/k3s/k3s.yaml
+
+    - name: Fetch K3s token
+      ansible.builtin.slurp:
+        src: /var/lib/rancher/k3s/server/node-token
+      register: k3s_token
+
+    - name: Store K3s token
+      ansible.builtin.set_fact:
+        k3s_join_token: "{{ k3s_token['content'] | b64decode | trim }}"
+
+- name: Configure K3s Workers
+  hosts: k3s_workers
+  become: yes
+  gather_facts: yes
+  roles:
+    - role: prometheus.prometheus.node_exporter
+  tasks:
+    - name: Wait for SSH to become available
+      ansible.builtin.wait_for_connection:
+        timeout: 60
+
+    - name: Update apt package cache
       ansible.builtin.apt:
-        name: docker.io
-        state: present # check if present, if not install it
-      register: apt_install_docker
-      until: apt_install_docker is not failed
-      retries: 5
-      delay: 10
+        update_cache: yes
+        cache_valid_time: 3600
 
-    - name: Ensure Docker service is running and enabled on boot
-      ansible.builtin.service:
-        name: docker
-        state: started
-        enabled: yes
-
-    - name: Run Hello-Worldapp container
-      ansible.builtin.docker_container:
-        name: hello-world-app
-        image: "ghcr.io/mayyyk/devops_playground:latest"
-        state: started
-        pull: yes # Forces docker to pull lates version from registry
-        restart_policy: always
-        ports:
-          - "5000:5000"
-  
+    - name: Install K3s agent on worker nodes
+      ansible.builtin.shell: >
+        curl -sfL https://get.k3s.io | K3S_URL=https://{{ groups['k3s_master'][0] }}:6443 
+        K3S_TOKEN={{ hostvars[groups['k3s_master'][0]]['k3s_join_token'] }} 
+        sh -s - --node-name k3s-worker-{{ ansible_play_batch.index(inventory_hostname) + 1 }}
+      args:
+        creates: /etc/rancher/k3s/k3s.yaml

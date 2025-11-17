@@ -1,7 +1,12 @@
-# file format for ansible inventory - for terraform use
+[k3s_master]
+${droplets[0].ipv4_address} ansible_user=root
 
-[webserver]
-%{ for droplet in droplets ~}
+[k3s_workers]
+%{ for i, droplet in droplets ~}
+%{ if i > 0 ~}
 ${droplet.ipv4_address} ansible_user=root
+%{ endif ~}
 %{ endfor ~}
 
+[all:vars]
+ansible_ssh_common_args='-o StrictHostKeyChecking=no'

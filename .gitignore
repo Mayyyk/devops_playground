@@ -27,7 +27,11 @@ ansible_project/vars/secrets.yml
 *.tfstate
 *.tfstate.backup
 
+# K3s
+k3s/k3s.yaml
+
 # Other
 *sync-conflict*
 .devcontainer/
 .gemini/
+

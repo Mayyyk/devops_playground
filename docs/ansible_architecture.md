@@ -1,0 +1,2 @@
+1. Why Ansible?
+Ansible automates the software installation and configuration on your servers. By using an Ansible playbook, we ensure that K3s is installed and configured identically every time, eliminating manual errors. The playbook will handle the specific steps for setting up the master, retrieving the join token, and having the worker join the cluster, which is the standard K3s setup procedure.

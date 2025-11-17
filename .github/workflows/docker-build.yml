@@ -69,30 +69,10 @@ jobs:
         env:
           TF_VAR_do_token: ${{ secrets.DO_TOKEN }}
 
-      - name: Get Server IPs
-        id: ips
-        run: echo "::set-output name=ip_addresses::$(terraform output -json droplet_ip_address)"
-        working-directory: ./terraform_project
-
-      - name: Create Inventory
-        id: inventory
-        run: |
-          echo "[webserver]" > inventory.ini
-          for ip in $(echo '${{ steps.ips.outputs.ip_addresses }}' | jq -r '.[]'); do
-            echo "$ip ansible_user=root" >> inventory.ini
-          done
-        working-directory: ./ansible_project
-
       - name: Set up SSH key
         uses: webfactory/ssh-agent@v0.9.0
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
-
-      - name: Add hosts to known_hosts
-        run: |
-          for ip in $(echo '${{ steps.ips.outputs.ip_addresses }}' | jq -r '.[]'); do
-            ssh-keyscan -H $ip >> ~/.ssh/known_hosts
-          done
 
       - name: Download ansible dependencies
         run: ansible-galaxy install -r requirements.yml
