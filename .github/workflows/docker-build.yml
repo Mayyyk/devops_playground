@@ -55,20 +55,17 @@ jobs:
         with:
           terraform_version: 1.2.5
 
-      - name: Create Terraform Cloud credentials file
-        run: |
-          mkdir -p ./terraform_project/.terraform.d
-          echo "{\"credentials\": {\"app.terraform.io\": {\"token\": \"${{ secrets.TFC_TOKEN }}\"}}}" > ./terraform_project/.terraform.d/credentials.tfrc.json
-        shell: bash
-
       - name: Terraform Init
         id: init
         run: terraform init
         working-directory: ./terraform_project
         env:
-          TF_VAR_do_token: ${{ secrets.DO_TOKEN }}
-          TF_CLI_CONFIG_FILE: ./terraform_project/.terraform.d/credentials.tfrc.json
+          TF_API_TOKEN: ${{ secrets.TF_API_TOKEN }} 
 
+      - name: Terraform Validate
+        run: terraform validate
+        env:
+          TF_API_TOKEN: ${{ secrets.TF_API_TOKEN }} 
       - name: Terraform Apply
         id: apply
         run: terraform apply -auto-approve
@@ -76,6 +73,17 @@ jobs:
         env:
           TF_VAR_do_token: ${{ secrets.DO_TOKEN }}
           TF_CLI_CONFIG_FILE: ./terraform_project/.terraform.d/credentials.tfrc.json
+
+      - name: Terraform Plan
+        run: terraform plan
+        env:
+          TF_API_TOKEN: ${{ secrets.TF_API_TOKEN }}
+
+      - name: Terraform Apply
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        run: terraform apply -auto-approve
+        env:
+          TF_API_TOKEN: ${{ secrets.TF_API_TOKEN }}
 
       - name: Set up SSH key
         uses: webfactory/ssh-agent@v0.9.0
