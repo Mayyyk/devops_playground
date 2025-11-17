@@ -18,10 +18,6 @@ terraform {
         source = "hashicorp/local"
         version = "~> 2.1"
       }
-      aws = {
-        source = "hashicorp/aws"
-        version = "~> 5.0"
-      }
     }
 }
 
@@ -125,21 +121,6 @@ resource "digitalocean_droplet" "web_server" {
 }
 
 
-resource "local_file" "ansible_inventory" {
-  content = templatefile("${path.module}/inventory.tftpl", {
-    droplets = digitalocean_droplet.web_server
-  })
-
-  
-  filename = "${path.module}/../ansible_project/inventory.ini"
-
-  depends_on = [
-    digitalocean_droplet.web_server
-  ] # wait till the server has been created and valid ip can be found
-}
-
-
-
 # After terraform apply show ip address of the server
 output "droplet_ip_address" {
   description = "Servers public IP adresses."
@@ -150,3 +131,15 @@ output "ssh_keys_on_server" {
   description = "Names of the SSH keys installed on the server"
   value = [data.digitalocean_ssh_key.laptop_key.name, data.digitalocean_ssh_key.pc_key.name]
 }
+
+output "ansible_inventory" {
+  description = "Content for the Ansible inventory file."
+  value = templatefile("${path.module}/inventory.tftpl", {
+    droplets = [
+      for droplet in digitalocean_droplet.web_server : {
+        ipv4_address = droplet.ipv4_address
+      }
+    ]
+  })
+  sensitive = true
+}   
