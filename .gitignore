@@ -34,4 +34,4 @@ k3s/k3s.yaml
 *sync-conflict*
 .devcontainer/
 .gemini/
-
+*.zsh

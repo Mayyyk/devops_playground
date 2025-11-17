@@ -1,17 +1,13 @@
-
-# To-do later: https://developer.hashicorp.com/terraform/language/backend
-# terraform {
-#   backend "s3" {
-#     bucket         = "my-terraform-state-bucket-name"
-#     key            = "my-project/terraform.tfstate"
-#     region         = "us-east-1"
-#     encrypt        = true
-#     dynamodb_table = "terraform-lock-table"
-#   }
-# }
-
-
 terraform {
+    cloud { 
+    
+    organization = "majk_terraform_organization" 
+
+    workspaces { 
+      name = "devops-project" 
+    } 
+  } 
+
     required_providers {
       digitalocean = {
         source = "digitalocean/digitalocean"
@@ -21,6 +17,10 @@ terraform {
       local = { # provider for interacting with local files
         source = "hashicorp/local"
         version = "~> 2.1"
+      }
+      aws = {
+        source = "hashicorp/aws"
+        version = "~> 5.0"
       }
     }
 }
